@@ -2,7 +2,7 @@
 
   guardrails -> route -> data question:  Cortex Analyst (text-to-SQL on the semantic model)
                                          -> SQL safety check -> run SQL -> answer from the rows
-                      -> why question:   Cortex Search over AI explanations -> answer citing sources
+                      -> why question:   retrieval over AI explanations -> answer citing sources
                       -> out of scope:   polite refusal
 Every call is written to the TRACES table, so failures in real use become new eval cases.
 """
@@ -114,7 +114,7 @@ Columns: {cols}
 Rows (first 20): {rows}
 Answer:"""
 
-# ---------------------------------------------------------------- why questions (Cortex Search)
+# ---------------------------------------------------------------- why questions (retrieval + cited answer)
 WHY_PROMPT = """Answer why the page is trending using ONLY the numbered sources below.
 Cite sources like [1]. If none of the sources is about the page asked, reply exactly: NOT_FOUND
 Question: {q}

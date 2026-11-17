@@ -1,7 +1,7 @@
 # Ask Pulse on Snowflake 📈
 
 **Ask what India is reading on Wikipedia, in plain English, and get answers you can trust.**
-A Snowflake agent built with **Cortex Analyst** (text-to-SQL on a semantic model) and **Cortex Search**
+A Snowflake agent built with **Cortex Analyst** (text-to-SQL on a semantic model) and **keyword retrieval with cited answers** (Cortex Search optional)
 (retrieval over AI explanations), with SQL guardrails, refusals and a **golden-set evaluation that every
 version is measured against**.
 
@@ -14,7 +14,7 @@ flowchart LR
     Q[Question] --> G[Guardrails]
     G --> R{Router<br/>Cortex LLM}
     R -->|numbers| A[Cortex Analyst<br/>semantic model] --> S[SQL check<br/>read-only, 3 tables] --> T
-    R -->|why| CS[Cortex Search<br/>explanations] --> C[Answer citing sources]
+    R -->|why| CS[Retrieve explanations<br/>keyword search] --> C[Answer citing sources]
     R -->|other| X[Refuse]
     T --> N[Answer from rows]
     N & C & X --> L[(TRACES)] -->|thumbs-down, errors| E[New eval cases]

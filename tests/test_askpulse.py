@@ -228,3 +228,16 @@ def test_golden_set_is_valid():
         if c["type"] == "refuse":
             assert c["question"]
     assert all("{page}" in t for t in WHY_TEMPLATES)
+
+
+def test_keyword_rank_prefers_title_match_and_skips_stopwords():
+    from askpulse import snow
+    rows = [
+        {"PAGE_TITLE": "Diwali", "WHY_REASON_EN": "Festival of lights celebrated across India.", "HOUR_UTC": "2026-11-01 10:00:00"},
+        {"PAGE_TITLE": "Virat_Kohli", "WHY_REASON_EN": "Scored a century; fans compared it to Diwali fireworks.", "HOUR_UTC": "2026-11-02 10:00:00"},
+        {"PAGE_TITLE": "Cyclone_Montha", "WHY_REASON_EN": "Landfall on the Andhra coast.", "HOUR_UTC": "2026-11-03 10:00:00"},
+    ]
+    hits = snow.rank("Why is Diwali trending?", rows)
+    assert [h["PAGE_TITLE"] for h in hits] == ["Diwali", "Virat_Kohli"]
+    assert snow.rank("why is it trending", rows) == []
+    assert snow.rank("virat kohli", rows, limit=1)[0]["PAGE_TITLE"] == "Virat_Kohli"

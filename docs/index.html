@@ -44,7 +44,7 @@
 <div class="wrap">
   <h1>Ask Pulse <span style="color:var(--muted);font-weight:400">· eval report</span></h1>
   <p class="sub">A Snowflake agent that answers questions about what India reads on Wikipedia: <b>Cortex Analyst</b>
-    (text-to-SQL on a semantic model) for numbers, <b>Cortex Search</b> over AI explanations for "why", with SQL
+    (text-to-SQL on a semantic model) for numbers, <b>retrieval</b> over AI explanations for "why", with SQL
     guardrails and refusals. Every version is scored on the same golden set; this page shows the hill-climb.</p>
 
   <section class="kpis" id="kpis"></section>
@@ -61,7 +61,7 @@
   <h2>How it works</h2>
   <div class="flow"><b>Wikipedia Pulse (hourly)</b><span>→</span><b>Snowflake tables</b><span>→</span>
     <b>Guardrails</b><span>→</span><b>Router (Cortex LLM)</b><span>→</span><b>Cortex Analyst + SQL check</b><span>/</span>
-    <b>Cortex Search + cited answer</b><span>→</span><b>Traces → new eval cases</b></div>
+    <b>Retrieval + cited answer</b><span>→</span><b>Traces → new eval cases</b></div>
   <p class="empty" style="font-size:13.5px">Data questions are scored by running a reference SQL query on the same data and comparing results.
     "Why" questions are generated from real trending pages and judged for retrieval and faithfulness.
     Out-of-scope and unanswerable questions must be refused, not answered with invented numbers.</p>

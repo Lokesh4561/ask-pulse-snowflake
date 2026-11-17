@@ -31,7 +31,7 @@ EXAMPLES = [
 st.set_page_config(page_title="Ask Pulse", page_icon="📈")
 st.title("Ask Pulse")
 st.caption("Ask what India is reading on Wikipedia. Answers come from live data in Snowflake "
-           "(Cortex Analyst for numbers, Cortex Search for 'why').")
+           "(Cortex Analyst for numbers, cited explanations for 'why').")
 
 
 @st.cache_resource
