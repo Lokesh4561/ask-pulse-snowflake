@@ -11,13 +11,28 @@ DB, SCHEMA = "ASK_PULSE", "CORE"
 FQ = f"{DB}.{SCHEMA}"
 
 
+def clean_pem(text: str) -> bytes:
+    """Rebuild a valid PEM from however the key was pasted into the secret: with or without the
+    BEGIN/END lines, Windows line endings, literal \\n, spaces or everything on one line."""
+    text = text.replace("\\n", "\n").replace("\r", "").strip().strip('"').strip("'")
+    m = re.search(r"-----BEGIN ([A-Z ]+)-----(.*?)-----END \1-----", text, re.S)
+    label, body = (m.group(1), m.group(2)) if m else ("PRIVATE KEY", text)
+    body = re.sub(r"[^A-Za-z0-9+/=]", "", body)
+    if not body:
+        raise ValueError("SNOWFLAKE_PRIVATE_KEY is empty")
+    lines = "\n".join(body[i:i + 64] for i in range(0, len(body), 64))
+    return f"-----BEGIN {label}-----\n{lines}\n-----END {label}-----\n".encode()
+
+
 def _private_key() -> bytes:
     """Private key from SNOWFLAKE_PRIVATE_KEY (PEM text) as DER bytes, as the connector expects."""
     from cryptography.hazmat.primitives import serialization
 
-    pem = os.environ["SNOWFLAKE_PRIVATE_KEY"].replace("\\n", "\n").encode()
+    raw = os.environ["SNOWFLAKE_PRIVATE_KEY"]
+    if "PUBLIC KEY" in raw or raw.strip().startswith("MIIBIj"):
+        raise ValueError("SNOWFLAKE_PRIVATE_KEY holds the PUBLIC key; paste the text of rsa_key.p8 instead")
     password = os.getenv("SNOWFLAKE_PRIVATE_KEY_PASSPHRASE")
-    key = serialization.load_pem_private_key(pem, password=password.encode() if password else None)
+    key = serialization.load_pem_private_key(clean_pem(raw), password=password.encode() if password else None)
     return key.private_bytes(serialization.Encoding.DER, serialization.PrivateFormat.PKCS8,
                              serialization.NoEncryption())
 
