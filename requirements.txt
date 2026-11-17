@@ -1,0 +1,7 @@
+snowflake-connector-python>=3.12
+cryptography>=42
+requests>=2.32
+PyYAML>=6.0
+streamlit>=1.38
+pandas>=2.2
+pytest>=8

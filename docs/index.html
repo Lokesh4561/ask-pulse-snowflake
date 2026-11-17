@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask Pulse · eval report</title>
+<meta name="description" content="Snowflake Cortex agent that answers questions about Wikipedia readership in India, measured with a golden set.">
+<style>
+  :root { color-scheme: light; --bg:#f4f4f2; --surface:#fcfcfb; --border:#e3e2de; --ink:#0b0b0b; --ink-2:#52514e;
+    --muted:#7a7973; --grid:#e8e7e3; --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+    --ok:#0ca30c; --ok-ink:#006300; --bad:#d03b3b; --accent-soft:#e8f1fc; }
+  @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --bg:#111110; --surface:#1a1a19; --border:#2d2d2b;
+    --ink:#f0efec; --ink-2:#c3c2b7; --muted:#8f8e86; --grid:#2a2a28; --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+    --s4:#c98500; --ok-ink:#4cc94c; --accent-soft:#1d2a3a; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  a { color: var(--s1); }
+  .wrap { max-width:1120px; margin:0 auto; padding:28px 20px 60px; }
+  h1 { margin:0; font-size:28px; letter-spacing:-.02em; }
+  .sub { color:var(--ink-2); margin:6px 0 0; max-width:760px; }
+  h2 { font-size:17px; margin:34px 0 12px; } h2 small { color:var(--muted); font-weight:400; font-size:13px; margin-left:6px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:22px; }
+  .kpi .k { color:var(--ink-2); font-size:13px; } .kpi .v { font-size:30px; font-weight:650; font-variant-numeric:tabular-nums; }
+  .kpi .n { color:var(--muted); font-size:12.5px; }
+  .legend { display:flex; flex-wrap:wrap; gap:16px; font-size:13px; color:var(--ink-2); margin-bottom:8px; }
+  .legend .sw::before { content:""; display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px; background:var(--c); }
+  svg text { fill:var(--ink-2); font-size:12px; font-family:inherit; } svg .val { fill:var(--ink); font-variant-numeric:tabular-nums; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--ink-2); font-weight:600; } td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .ok { color:var(--ok-ink); font-weight:600; } .no { color:var(--bad); font-weight:600; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; }
+  details summary { cursor:pointer; } pre { white-space:pre-wrap; background:var(--accent-soft); padding:8px; border-radius:6px; margin:6px 0; }
+  .flow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:13.5px; }
+  .flow b { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-weight:500; }
+  .flow span { color:var(--muted); }
+  #tip { position:fixed; pointer-events:none; background:var(--ink); color:var(--surface); font-size:12.5px; padding:6px 9px; border-radius:6px; opacity:0; }
+  .empty { color:var(--muted); }
+  @media (max-width:760px){ .kpis{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ask Pulse <span style="color:var(--muted);font-weight:400">· eval report</span></h1>
+  <p class="sub">A Snowflake agent that answers questions about what India reads on Wikipedia: <b>Cortex Analyst</b>
+    (text-to-SQL on a semantic model) for numbers, <b>Cortex Search</b> over AI explanations for "why", with SQL
+    guardrails and refusals. Every version is scored on the same golden set; this page shows the hill-climb.</p>
+
+  <section class="kpis" id="kpis"></section>
+
+  <h2>Hill-climb <small>same questions, each version of the agent</small></h2>
+  <div class="card"><div class="legend" id="legend"></div><div id="chart"></div></div>
+
+  <h2>Failure modes <small>what went wrong, per version</small></h2>
+  <div class="card" style="overflow-x:auto"><table id="failures"></table></div>
+
+  <h2>Every question <small>pass/fail per version; open a row for the latest SQL and answer</small></h2>
+  <div class="card" style="overflow-x:auto"><table id="cases"></table></div>
+
+  <h2>How it works</h2>
+  <div class="flow"><b>Wikipedia Pulse (hourly)</b><span>→</span><b>Snowflake tables</b><span>→</span>
+    <b>Guardrails</b><span>→</span><b>Router (Cortex LLM)</b><span>→</span><b>Cortex Analyst + SQL check</b><span>/</span>
+    <b>Cortex Search + cited answer</b><span>→</span><b>Traces → new eval cases</b></div>
+  <p class="empty" style="font-size:13.5px">Data questions are scored by running a reference SQL query on the same data and comparing results.
+    "Why" questions are generated from real trending pages and judged for retrieval and faithfulness.
+    Out-of-scope and unanswerable questions must be refused, not answered with invented numbers.</p>
+  <p class="empty" style="font-size:13px">Code: <a href="https://github.com/Lokesh4561/ask-pulse-snowflake">github.com/Lokesh4561/ask-pulse-snowflake</a> ·
+    by <a href="https://lokesh4561.github.io">Lokesh Reddy Maddali</a></p>
+</div>
+<div id="tip"></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const COLORS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)"];
+const METRICS = [["overall","Overall"],["data_accuracy","Data accuracy"],["why_accuracy","Why: correct"],
+  ["faithfulness","Why: faithful"],["refusal_accuracy","Out-of-scope refused"],["unanswerable_accuracy","Unanswerable handled"]];
+
+const tip = $("tip");
+document.addEventListener("mousemove", (e) => {
+  const t = e.target.closest("[data-tip]");
+  if (!t) { tip.style.opacity = 0; return; }
+  tip.textContent = t.dataset.tip; tip.style.opacity = 1;
+  tip.style.left = Math.min(e.clientX + 12, innerWidth - 260) + "px"; tip.style.top = e.clientY + 14 + "px";
+});
+
+function chart(runs) {
+  const W = 760, labelW = 170, plotW = W - labelW - 60, barH = 12, gap = 2, group = runs.length * (barH + gap) + 12;
+  const H = METRICS.length * group;
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block" role="img" aria-label="Scores per version">`;
+  [50, 100].forEach((v) => s += `<line x1="${labelW + plotW * v / 100}" x2="${labelW + plotW * v / 100}" y1="0" y2="${H - 12}" stroke="var(--grid)"/>`);
+  METRICS.forEach(([k, label], i) => {
+    const y0 = i * group;
+    s += `<text x="${labelW - 10}" y="${y0 + (group - 12) / 2 + 4}" text-anchor="end">${label}</text>`;
+    runs.forEach((r, j) => {
+      const v = r.summary[k];
+      if (v == null) return;
+      const y = y0 + j * (barH + gap), w = Math.max(2, plotW * v / 100);
+      s += `<g data-tip="${esc(r.tag)} · ${label}: ${v}%"><rect x="${labelW}" y="${y - 2}" width="${plotW + 50}" height="${barH + 4}" fill="transparent"/>
+        <path d="M${labelW},${y} h${Math.max(w - 4, 0)} a4,4 0 0 1 4,4 v${barH - 8} a4,4 0 0 1 -4,4 h${-Math.max(w - 4, 0)} z" fill="${COLORS[j % 4]}"/>
+        <text class="val" x="${labelW + w + 6}" y="${y + barH - 2}">${v}%</text></g>`;
+    });
+  });
+  return s + "</svg>";
+}
+
+fetch("results.json", { cache: "no-store" }).then((r) => r.json()).then((d) => {
+  const runs = d.runs.slice(-4), last = runs[runs.length - 1], first = runs[0], s = last.summary;
+  const tiles = [
+    ["Overall pass rate", `${s.overall}%`, runs.length > 1 ? `from ${first.summary.overall}% in ${first.tag}` : last.tag],
+    ["Data questions correct", `${s.data_accuracy}%`, "execution accuracy vs reference SQL"],
+    ["Why answers faithful", s.faithfulness == null ? "–" : `${s.faithfulness}%`, `retrieval hit ${s.retrieval_hit ?? "–"}%`],
+    ["Made-up answers", s.made_up_answers, `${s.refusal_accuracy}% of out-of-scope refused`],
+  ];
+  $("kpis").innerHTML = tiles.map(([k, v, n]) => `<div class="card kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${esc(n)}</div></div>`).join("");
+  $("legend").innerHTML = runs.map((r, j) => `<span class="sw" style="--c:${COLORS[j % 4]}">${esc(r.tag)} <i style="color:var(--muted);font-style:normal">(${esc(r.date)})</i></span>`).join("");
+  $("chart").innerHTML = chart(runs);
+
+  const modes = [...new Set(runs.flatMap((r) => Object.keys(r.summary.failures)))].sort();
+  $("failures").innerHTML = `<tr><th>Failure mode</th>${runs.map((r) => `<th class="num">${esc(r.tag)}</th>`).join("")}</tr>` +
+    (modes.length ? modes.map((m) => `<tr><td class="mono">${esc(m)}</td>${runs.map((r) => `<td class="num">${r.summary.failures[m] || 0}</td>`).join("")}</tr>`).join("")
+      : `<tr><td colspan="${runs.length + 1}" class="empty">No failures.</td></tr>`);
+
+  const byId = runs.map((r) => Object.fromEntries(r.cases.map((c) => [c.id, c])));
+  $("cases").innerHTML = `<tr><th>Question</th><th>Type</th>${runs.map((r) => `<th>${esc(r.tag)}</th>`).join("")}</tr>` +
+    last.cases.map((c) => `<tr><td><details><summary>${esc(c.question)}</summary>
+      ${c.sql ? `<pre class="mono">${esc(c.sql)}</pre>` : ""}<div>${esc(c.answer)}</div></details></td><td>${c.type}</td>
+      ${byId.map((m) => { const x = m[c.id]; return `<td>${!x ? "–" : x.pass ? '<span class="ok">✓ pass</span>' : `<span class="no">✕</span> <span class="mono">${esc(x.failure)}</span>`}</td>`; }).join("")}</tr>`).join("");
+}).catch(() => { $("kpis").innerHTML = `<div class="card empty">No eval results yet. Run python -m evals.run, then python -m evals.report.</div>`; });
+</script>
+</body>
+</html>

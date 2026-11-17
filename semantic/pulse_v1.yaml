@@ -1,0 +1,121 @@
+name: ask_pulse
+description: Wikipedia page views.
+tables:
+- name: language_hourly
+  description: language hourly
+  base_table:
+    database: ASK_PULSE
+    schema: CORE
+    table: LANGUAGE_HOURLY
+  primary_key:
+    columns:
+    - hour_utc
+    - language_code
+  dimensions:
+  - name: language_code
+    expr: LANGUAGE_CODE
+    data_type: VARCHAR
+    description: language code
+  - name: language_name
+    expr: LANGUAGE_NAME
+    data_type: VARCHAR
+    description: language name
+  - name: native_name
+    expr: NATIVE_NAME
+    data_type: VARCHAR
+    description: native name
+  time_dimensions:
+  - name: hour_utc
+    expr: HOUR_UTC
+    data_type: TIMESTAMP_NTZ
+    description: hour utc
+  measures:
+  - name: total_views
+    expr: TOTAL_VIEWS
+    data_type: NUMBER
+    default_aggregation: sum
+    description: total views
+- name: top_pages_hourly
+  description: top pages hourly
+  base_table:
+    database: ASK_PULSE
+    schema: CORE
+    table: TOP_PAGES_HOURLY
+  primary_key:
+    columns:
+    - hour_utc
+    - language_code
+    - rank
+  dimensions:
+  - name: language_code
+    expr: LANGUAGE_CODE
+    data_type: VARCHAR
+    description: language code
+  - name: page_title
+    expr: PAGE_TITLE
+    data_type: VARCHAR
+    description: page title
+  - name: page_rank
+    expr: RANK
+    data_type: NUMBER
+    description: page rank
+  time_dimensions:
+  - name: hour_utc
+    expr: HOUR_UTC
+    data_type: TIMESTAMP_NTZ
+    description: hour utc
+  measures:
+  - name: page_views
+    expr: VIEWS
+    data_type: NUMBER
+    default_aggregation: sum
+    description: page views
+- name: trending_pages
+  description: trending pages
+  base_table:
+    database: ASK_PULSE
+    schema: CORE
+    table: TRENDING_PAGES
+  primary_key:
+    columns:
+    - hour_utc
+    - language_code
+    - page_title
+  dimensions:
+  - name: language_code
+    expr: LANGUAGE_CODE
+    data_type: VARCHAR
+    description: language code
+  - name: page_title
+    expr: PAGE_TITLE
+    data_type: VARCHAR
+    description: page title
+  - name: why_category
+    expr: WHY_CATEGORY
+    data_type: VARCHAR
+    description: why category
+  - name: why_reason_en
+    expr: WHY_REASON_EN
+    data_type: VARCHAR
+    description: why reason en
+  time_dimensions:
+  - name: hour_utc
+    expr: HOUR_UTC
+    data_type: TIMESTAMP_NTZ
+    description: hour utc
+  measures:
+  - name: trend_views
+    expr: VIEWS
+    data_type: NUMBER
+    default_aggregation: sum
+    description: trend views
+  - name: spike_ratio
+    expr: SPIKE_RATIO
+    data_type: FLOAT
+    default_aggregation: max
+    description: spike ratio
+  - name: baseline_avg
+    expr: BASELINE_AVG
+    data_type: FLOAT
+    default_aggregation: avg
+    description: baseline avg

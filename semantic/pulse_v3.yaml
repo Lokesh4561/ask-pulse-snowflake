@@ -1,0 +1,267 @@
+name: ask_pulse
+description: 'What people in India read on Wikipedia, hourly, in English and 13 Indian languages: views per language,
+  most-read pages, and trending pages with AI explanations. Rules: (1) Times are UTC hours. ''Latest hour'', ''now'',
+  ''last 24 hours'', ''today'' and ''yesterday'' are relative to the newest loaded hour, MAX(HOUR_UTC), not CURRENT_TIMESTAMP,
+  because data arrives with a delay. ''Last 24 hours'' means HOUR_UTC > MAX(HOUR_UTC) - 24 hours. (2) ''Trending
+  now'' or ''right now'' means trending in the last 6 hours. (3) Questions that name a language (Telugu, Hindi...)
+  must filter LANGUAGE_CODE with the code. (4) Page titles use underscores instead of spaces.'
+tables:
+- name: language_hourly
+  description: 'Total page views from India per language per UTC hour. Rules: (1) Times are UTC hours. ''Latest
+    hour'', ''now'', ''last 24 hours'', ''today'' and ''yesterday'' are relative to the newest loaded hour, MAX(HOUR_UTC),
+    not CURRENT_TIMESTAMP, because data arrives with a delay. ''Last 24 hours'' means HOUR_UTC > MAX(HOUR_UTC) -
+    24 hours. (2) ''Trending now'' or ''right now'' means trending in the last 6 hours. (3) Questions that name
+    a language (Telugu, Hindi...) must filter LANGUAGE_CODE with the code. (4) Page titles use underscores instead
+    of spaces.'
+  base_table:
+    database: ASK_PULSE
+    schema: CORE
+    table: LANGUAGE_HOURLY
+  primary_key:
+    columns:
+    - hour_utc
+    - language_code
+  dimensions:
+  - name: language_code
+    expr: LANGUAGE_CODE
+    data_type: VARCHAR
+    description: 'Language code: en=English, hi=Hindi, bn=Bengali, te=Telugu, mr=Marathi, ta=Tamil, ur=Urdu, gu=Gujarati,
+      kn=Kannada, ml=Malayalam, pa=Punjabi, or=Odia, as=Assamese, sa=Sanskrit.'
+    synonyms:
+    - language
+    - wiki
+    - Wikipedia language
+    sample_values:
+    - en
+    - hi
+    - bn
+    - te
+    - mr
+    - ta
+    - ur
+    - gu
+  - name: language_name
+    expr: LANGUAGE_NAME
+    data_type: VARCHAR
+    description: Language name in English, e.g. Telugu.
+    synonyms:
+    - language
+    sample_values:
+    - English
+    - Hindi
+    - Bengali
+    - Telugu
+    - Marathi
+    - Tamil
+    - Urdu
+    - Gujarati
+  - name: native_name
+    expr: NATIVE_NAME
+    data_type: VARCHAR
+    description: Language name written in that language.
+  time_dimensions:
+  - name: hour_utc
+    expr: HOUR_UTC
+    data_type: TIMESTAMP_NTZ
+    description: Start of the UTC hour.
+  measures:
+  - name: total_views
+    expr: TOTAL_VIEWS
+    data_type: NUMBER
+    default_aggregation: sum
+    description: Page views in the hour.
+    synonyms:
+    - views
+    - page views
+    - traffic
+    - readership
+- name: top_pages_hourly
+  description: 'The 10 most-read pages per language for each loaded hour (rank 1 = most read). Rules: (1) Times
+    are UTC hours. ''Latest hour'', ''now'', ''last 24 hours'', ''today'' and ''yesterday'' are relative to the
+    newest loaded hour, MAX(HOUR_UTC), not CURRENT_TIMESTAMP, because data arrives with a delay. ''Last 24 hours''
+    means HOUR_UTC > MAX(HOUR_UTC) - 24 hours. (2) ''Trending now'' or ''right now'' means trending in the last
+    6 hours. (3) Questions that name a language (Telugu, Hindi...) must filter LANGUAGE_CODE with the code. (4)
+    Page titles use underscores instead of spaces.'
+  base_table:
+    database: ASK_PULSE
+    schema: CORE
+    table: TOP_PAGES_HOURLY
+  primary_key:
+    columns:
+    - hour_utc
+    - language_code
+    - rank
+  dimensions:
+  - name: language_code
+    expr: LANGUAGE_CODE
+    data_type: VARCHAR
+    description: 'Language code: en=English, hi=Hindi, bn=Bengali, te=Telugu, mr=Marathi, ta=Tamil, ur=Urdu, gu=Gujarati,
+      kn=Kannada, ml=Malayalam, pa=Punjabi, or=Odia, as=Assamese, sa=Sanskrit.'
+    synonyms:
+    - language
+    - wiki
+    - Wikipedia language
+    sample_values:
+    - en
+    - hi
+    - bn
+    - te
+    - mr
+    - ta
+    - ur
+    - gu
+  - name: page_title
+    expr: PAGE_TITLE
+    data_type: VARCHAR
+    description: Wikipedia page title (underscores for spaces).
+    synonyms:
+    - page
+    - article
+    - topic
+  - name: page_rank
+    expr: RANK
+    data_type: NUMBER
+    description: 1 = most read page that hour.
+    synonyms:
+    - rank
+    - position
+  time_dimensions:
+  - name: hour_utc
+    expr: HOUR_UTC
+    data_type: TIMESTAMP_NTZ
+    description: Start of the UTC hour.
+  measures:
+  - name: page_views
+    expr: VIEWS
+    data_type: NUMBER
+    default_aggregation: sum
+    description: Views of the page in that hour.
+    synonyms:
+    - views
+    - reads
+- name: trending_pages
+  description: 'Pages whose hourly views jumped to 5x or more of their 24-hour average, with an AI explanation (category
+    and reason) when available. Rules: (1) Times are UTC hours. ''Latest hour'', ''now'', ''last 24 hours'', ''today''
+    and ''yesterday'' are relative to the newest loaded hour, MAX(HOUR_UTC), not CURRENT_TIMESTAMP, because data
+    arrives with a delay. ''Last 24 hours'' means HOUR_UTC > MAX(HOUR_UTC) - 24 hours. (2) ''Trending now'' or ''right
+    now'' means trending in the last 6 hours. (3) Questions that name a language (Telugu, Hindi...) must filter
+    LANGUAGE_CODE with the code. (4) Page titles use underscores instead of spaces.'
+  base_table:
+    database: ASK_PULSE
+    schema: CORE
+    table: TRENDING_PAGES
+  primary_key:
+    columns:
+    - hour_utc
+    - language_code
+    - page_title
+  dimensions:
+  - name: language_code
+    expr: LANGUAGE_CODE
+    data_type: VARCHAR
+    description: 'Language code: en=English, hi=Hindi, bn=Bengali, te=Telugu, mr=Marathi, ta=Tamil, ur=Urdu, gu=Gujarati,
+      kn=Kannada, ml=Malayalam, pa=Punjabi, or=Odia, as=Assamese, sa=Sanskrit.'
+    synonyms:
+    - language
+    - wiki
+    - Wikipedia language
+    sample_values:
+    - en
+    - hi
+    - bn
+    - te
+    - mr
+    - ta
+    - ur
+    - gu
+  - name: page_title
+    expr: PAGE_TITLE
+    data_type: VARCHAR
+    description: Wikipedia page title (underscores for spaces).
+    synonyms:
+    - page
+    - article
+    - topic
+  - name: why_category
+    expr: WHY_CATEGORY
+    data_type: VARCHAR
+    description: 'Why it is trending: death, sports, film_tv_music, politics_government, crime_accident, festival_religion,
+      science_tech, business, anniversary, other.'
+    synonyms:
+    - category
+    - reason type
+    - topic type
+    sample_values:
+    - sports
+    - film_tv_music
+    - death
+    - politics_government
+  - name: why_reason_en
+    expr: WHY_REASON_EN
+    data_type: VARCHAR
+    description: AI explanation in English, grounded in news.
+    synonyms:
+    - reason
+    - explanation
+    - why
+  time_dimensions:
+  - name: hour_utc
+    expr: HOUR_UTC
+    data_type: TIMESTAMP_NTZ
+    description: Hour of the spike.
+  measures:
+  - name: trend_views
+    expr: VIEWS
+    data_type: NUMBER
+    default_aggregation: sum
+    description: Views in the spike hour.
+    synonyms:
+    - views
+  - name: spike_ratio
+    expr: SPIKE_RATIO
+    data_type: FLOAT
+    default_aggregation: max
+    description: Views divided by the 24-hour average; 10 means 10x.
+    synonyms:
+    - spike
+    - jump
+    - how many times usual
+  - name: baseline_avg
+    expr: BASELINE_AVG
+    data_type: FLOAT
+    default_aggregation: avg
+    description: Average hourly views in the previous 24 hours.
+    synonyms:
+    - usual views
+    - normal views
+verified_queries:
+- name: views_last_24h_by_language
+  question: Rank the languages by total views over the last 24 hours.
+  sql: SELECT language_name, SUM(total_views) AS views FROM __language_hourly WHERE hour_utc > (SELECT MAX(hour_utc)
+    FROM __language_hourly) - INTERVAL '24 HOURS' GROUP BY language_name ORDER BY views DESC
+  verified_by: Lokesh
+  verified_at: 1763337600
+  use_as_onboarding_question: true
+- name: trending_now_telugu
+  question: Which Telugu pages are trending right now?
+  sql: SELECT page_title, MAX(spike_ratio) AS spike, MAX(trend_views) AS views FROM __trending_pages WHERE language_code
+    = 'te' AND hour_utc > (SELECT MAX(hour_utc) FROM __trending_pages) - INTERVAL '6 HOURS' GROUP BY page_title
+    ORDER BY spike DESC
+  verified_by: Lokesh
+  verified_at: 1763337600
+  use_as_onboarding_question: true
+- name: top_page_latest_hour
+  question: What was the most-read Hindi page in the latest hour?
+  sql: SELECT page_title, page_views FROM __top_pages_hourly WHERE language_code = 'hi' AND page_rank = 1 AND hour_utc
+    = (SELECT MAX(hour_utc) FROM __top_pages_hourly)
+  verified_by: Lokesh
+  verified_at: 1763337600
+  use_as_onboarding_question: false
+- name: views_per_day
+  question: Show total views per day for English over the last 7 days.
+  sql: SELECT DATE_TRUNC('DAY', hour_utc) AS day, SUM(total_views) AS views FROM __language_hourly WHERE language_code
+    = 'en' AND hour_utc > (SELECT MAX(hour_utc) FROM __language_hourly) - INTERVAL '7 DAYS' GROUP BY day ORDER BY
+    day
+  verified_by: Lokesh
+  verified_at: 1763337600
+  use_as_onboarding_question: false

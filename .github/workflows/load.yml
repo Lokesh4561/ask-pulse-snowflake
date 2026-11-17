@@ -1,0 +1,22 @@
+name: load
+on:
+  schedule:
+    - cron: "41 * * * *"   # hourly, after Wikipedia Pulse publishes
+  workflow_dispatch:
+concurrency: load
+jobs:
+  load:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Load the latest snapshot into Snowflake
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+        run: python -m askpulse.load
